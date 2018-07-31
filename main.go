@@ -59,7 +59,7 @@ func main() {
 			pubKeys = append(pubKeys, rsaPub)
 		}
 	}
-	//i and j are the indices of the pair of the pub key generated
+	//i and j are the index of the pair of the pub key generated
 	for i := range pubKeys {
 		for j := i + 1; j < len(pubKeys); j++ {
 			hcf := big.NewInt(0)
