@@ -6,12 +6,13 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"os"
 	"path/filepath"
 )
 
-func retrievePubKeyFileNames(dir string, subdirskip string) []string {
+func retrievePubKeyFilePaths(dir string, subdirskip string) []string {
 	list := make([]string, 0)
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -35,30 +36,39 @@ func retrievePubKeyFileNames(dir string, subdirskip string) []string {
 	return list
 }
 
-func main() {
-	filenames := retrievePubKeyFileNames("res", "sample")
+func createPubKeys(filepaths []string) ([]*rsa.PublicKey, error) {
 	pubKeys := make([]*rsa.PublicKey, 0)
-	for i := range filenames {
-		println("FILE: ", filenames[i])
-		dat, err := ioutil.ReadFile(filenames[i])
+	for i := range filepaths {
+		println("FILE: ", filepaths[i])
+		dat, err := ioutil.ReadFile(filepaths[i])
 		if err != nil {
-			fmt.Printf("Error reading file %v %v\n", filenames[i], err)
-			return
+			fmt.Printf("Error reading file %v %v\n", filepaths[i], err)
+			return nil, err
 		}
 		block, rest := pem.Decode(dat)
 		if rest == nil {
-			fmt.Printf("File: %v is not a valid PEM file", filenames[i])
-			return
+			fmt.Printf("File: %v is not a valid PEM file", filepaths[i])
+			return nil, err
 		}
 		pub, err := x509.ParsePKIXPublicKey(block.Bytes)
 		if err != nil {
-			fmt.Printf("Error parsing file as public key: %v %v", filenames[i], err)
+			fmt.Printf("Error parsing file as public key: %v %v", filepaths[i], err)
 		}
 		rsaPub, ok := pub.(*rsa.PublicKey)
 		if ok {
 			pubKeys = append(pubKeys, rsaPub)
 		}
 	}
+	return pubKeys, nil
+}
+
+func main() {
+	filepaths := retrievePubKeyFilePaths("res", "sample")
+	pubKeys, err := createPubKeys(filepaths)
+	if err != nil {
+		log.Fatal("Error reading files due to error: ", err)
+	}
+
 	//i and j are the index of the pair of the pub key generated
 	for i := range pubKeys {
 		for j := i + 1; j < len(pubKeys); j++ {
